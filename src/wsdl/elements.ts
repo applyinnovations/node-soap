@@ -130,11 +130,13 @@ export class Element {
     }
 
     const ChildClass = this.allowedChildren[splitQName(nsName).name];
+
     if (ChildClass) {
       const child = new ChildClass(nsName, attrs, options, schemaXmlns);
       child.init();
       stack.push(child);
     } else {
+      // console.log("CHild class", nsName);
       this.unexpected(nsName);
     }
   }
@@ -490,6 +492,8 @@ export class ComplexTypeElement extends Element {
     "complexContent",
     "sequence",
     "simpleContent",
+    "attributeGroup",
+    "attribute",
   ]);
   public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
     const children = this.children || [];
@@ -499,7 +503,9 @@ export class ComplexTypeElement extends Element {
         child instanceof SequenceElement ||
         child instanceof AllElement ||
         child instanceof SimpleContentElement ||
-        child instanceof ComplexContentElement
+        child instanceof ComplexContentElement ||
+        child instanceof AttributeGroupElement ||
+        child instanceof AttributeElement
       ) {
         return child.description(definitions, xmlns);
       }
@@ -533,6 +539,10 @@ export class SimpleContentElement extends Element {
 }
 
 export class AttributeGroupElement extends Element {
+  constructor(nsName: string, attrs, options?: IWsdlBaseOptions, schemaAttrs?) {
+    super(nsName, attrs, options, schemaAttrs);
+    console.log("creating attribute group class");
+  }
   public readonly allowedChildren = buildAllowedChildren(["attribute"]);
   public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
     const sequence = {};
@@ -544,6 +554,24 @@ export class AttributeGroupElement extends Element {
     }
     return sequence;
   }
+}
+
+export class AttributeElement extends ElementElement {
+  constructor(nsName: string, attrs, options?: IWsdlBaseOptions, schemaAttrs?) {
+    super(nsName, attrs, options, schemaAttrs);
+    console.log("creating attribute class");
+  }
+  // public readonly allowedChildren = buildAllowedChildren(["attribute"]);
+  // public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
+  //   const sequence = {};
+  //   for (const child of this.children) {
+  //     const description = child.description(definitions, xmlns);
+  //     for (const key in description) {
+  //       sequence[key] = description[key];
+  //     }
+  //   }
+  //   return sequence;
+  // }
 }
 
 export class SequenceElement extends Element {
@@ -1228,6 +1256,8 @@ const ElementTypeMap: {
   simpleContent: SimpleContentElement,
   simpleType: SimpleTypeElement,
   types: TypesElement,
+  attributeGroup: AttributeGroupElement,
+  attribute: AttributeElement,
 };
 
 function buildAllowedChildren(elementList: string[]): {
