@@ -1500,9 +1500,11 @@ export class WSDL {
       if (top) {
         try {
           if (name === "attributeGroup") {
-            console.log("Top Name:", top.name);
+            console.log(`parent of attributeGroup is ${top.name}`);
           }
-
+          if (name === "attribute") {
+            console.log(`parent of attribute is ${top.name}`);
+          }
           top.startElement(stack, nsName, attrs, options, schemaAttrs);
           // console.log(stack.slice(-1)[0]);
         } catch (e) {
