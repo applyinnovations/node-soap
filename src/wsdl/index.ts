@@ -1499,7 +1499,7 @@ export class WSDL {
       }
       if (top) {
         try {
-          // if (name === "attributeGroup") {
+          // if (name === "element") {
           //   console.log(`parent of attributeGroup is ${top.name}`);
           // }
           // if (name === "attribute") {
@@ -1509,7 +1509,14 @@ export class WSDL {
           //   console.log("Top Name:", top.name);
           // }
 
-          top.startElement(stack, nsName, attrs, options, schemaAttrs);
+          top.startElement(
+            stack,
+            nsName,
+            attrs,
+            options,
+            schemaAttrs,
+            attrs?.ref
+          );
           // console.log(stack.slice(-1)[0]);
         } catch (e) {
           if (this.options.strict) {
