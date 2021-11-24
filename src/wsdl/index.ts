@@ -1502,6 +1502,9 @@ export class WSDL {
           if (name === "attributeGroup") {
             console.log("Top Name:", top.name);
           }
+          // if (name === "attribute") {
+          //   console.log("Top Name:", top.name);
+          // }
 
           top.startElement(stack, nsName, attrs, options, schemaAttrs);
           // console.log(stack.slice(-1)[0]);

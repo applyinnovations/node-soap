@@ -71,6 +71,7 @@ export class Element {
   public valueKey: string;
   public xmlKey;
   public xmlns?: IXmlNs;
+  public attrs?: any;
 
   constructor(nsName: string, attrs, options?: IWsdlBaseOptions, schemaAttrs?) {
     const parts = splitQName(nsName);
@@ -81,6 +82,7 @@ export class Element {
     this.children = [];
     this.xmlns = {};
     this.schemaXmlns = {};
+    this.attrs = attrs;
 
     this._initializeOptions(options);
 
@@ -423,14 +425,33 @@ export class ExtensionElement extends Element {
     "all",
     "choice",
     "sequence",
+    "attribute",
+    "attributeGroup",
   ]);
   public $base: string;
 
   public description(definitions: DefinitionsElement, xmlns?: IXmlNs) {
     let desc = {};
     for (const child of this.children) {
-      if (child instanceof SequenceElement || child instanceof ChoiceElement) {
+      if (
+        child instanceof SequenceElement ||
+        child instanceof ChoiceElement ||
+        child instanceof AttributeGroupElement ||
+        child instanceof AttributeElement
+      ) {
         desc = child.description(definitions, xmlns);
+        if (child instanceof SequenceElement) {
+          console.log(
+            "it went here in the Extension Element: SequenceElement",
+            desc
+          );
+        }
+        if (child instanceof AttributeGroupElement) {
+          console.log(
+            "it went here in the Extension Element:AttributeGroupElement ",
+            desc
+          );
+        }
       }
     }
     if (this.$base) {
@@ -495,6 +516,7 @@ export class ComplexTypeElement extends Element {
     "attributeGroup",
     "attribute",
   ]);
+
   public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
     const children = this.children || [];
     for (const child of children) {
@@ -541,25 +563,39 @@ export class SimpleContentElement extends Element {
 export class AttributeGroupElement extends Element {
   constructor(nsName: string, attrs, options?: IWsdlBaseOptions, schemaAttrs?) {
     super(nsName, attrs, options, schemaAttrs);
-    console.log("creating attribute group class");
+
+    // console.log("creating attribute group class");
   }
-  public readonly allowedChildren = buildAllowedChildren(["attribute"]);
+  public readonly allowedChildren = buildAllowedChildren([
+    "attribute",
+    "attributeGroup",
+  ]);
   public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
-    const sequence = {};
+    let attribGroupDesc = {};
     for (const child of this.children) {
-      const description = child.description(definitions, xmlns);
-      for (const key in description) {
-        sequence[key] = description[key];
+      if (child instanceof AttributeGroupElement) {
+        return child.description(definitions, xmlns);
       }
+
+      // get the ref name and make it as key name for the return objecf
+      const attributeGroupKey = this.attrs.ref;
+      const attributeGroupValue = {};
+      attribGroupDesc[attributeGroupKey] = attributeGroupValue;
+      // get the actual reference and have it as a value to they key name
+      // for (const key in description) {
+      //   attribGroup[key] = description[key];
+      // }
     }
-    return sequence;
+    // console.log("this is the description of attrib group", attribGroup);
+    console.log("this is the attrib groupDesc", attribGroupDesc, xmlns);
+    return attribGroupDesc;
   }
 }
 
 export class AttributeElement extends ElementElement {
   constructor(nsName: string, attrs, options?: IWsdlBaseOptions, schemaAttrs?) {
     super(nsName, attrs, options, schemaAttrs);
-    console.log("creating attribute class");
+    // console.log("creating attribute class");
   }
   // public readonly allowedChildren = buildAllowedChildren(["attribute"]);
   // public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
@@ -837,8 +873,11 @@ export class SchemaElement extends Element {
     "import",
     "include",
     "simpleType",
+    "attributeGroup",
+    "attribute",
   ]);
   public complexTypes: { [name: string]: ComplexTypeElement } = {};
+  public attributeGroup: { [name: string]: AttributeGroupElement } = {};
   public types: { [name: string]: SimpleTypeElement } = {};
   public elements: { [name: string]: ElementElement } = {};
   public includes: IInclude[] = [];
@@ -882,8 +921,11 @@ export class SchemaElement extends Element {
       this.elements[child.$name] = child;
     } else if (child instanceof SimpleTypeElement) {
       this.types[child.$name] = child;
-    }
-    this.children.pop();
+    } else if (child instanceof AttributeElement) {
+      this.types[child.$name] = child;
+    } else if (child instanceof AttributeGroupElement) {
+      this.attributeGroup[child.$name] = child;
+    } else this.children.pop();
     // child.deleteFixedAttrs();
   }
 }
