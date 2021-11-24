@@ -193,6 +193,8 @@ export class ElementElement extends Element {
     "annotation",
     "complexType",
     "simpleType",
+    "attributeGroup",
+    "attribute",
   ]);
   public $minOccurs?: string;
   public $maxOccurs?: string;
@@ -297,7 +299,9 @@ export class ElementElement extends Element {
       for (const child of children) {
         if (
           child instanceof ComplexTypeElement ||
-          child instanceof SimpleTypeElement
+          child instanceof SimpleTypeElement ||
+          child instanceof AttributeGroupElement ||
+          child instanceof AttributeElement
         ) {
           element[name] = child.description(definitions, xmlns);
         }
@@ -440,18 +444,18 @@ export class ExtensionElement extends Element {
         child instanceof AttributeElement
       ) {
         desc = child.description(definitions, xmlns);
-        if (child instanceof SequenceElement) {
-          console.log(
-            "it went here in the Extension Element: SequenceElement",
-            desc
-          );
-        }
-        if (child instanceof AttributeGroupElement) {
-          console.log(
-            "it went here in the Extension Element:AttributeGroupElement ",
-            desc
-          );
-        }
+        // if (child instanceof SequenceElement) {
+        //   console.log(
+        //     "it went here in the Extension Element: SequenceElement",
+        //     desc
+        //   );
+        // }
+        // if (child instanceof AttributeGroupElement) {
+        //   console.log(
+        //     "it went here in the Extension Element:AttributeGroupElement ",
+        //     desc
+        //   );
+        // }
       }
     }
     if (this.$base) {
@@ -529,6 +533,12 @@ export class ComplexTypeElement extends Element {
         child instanceof AttributeGroupElement ||
         child instanceof AttributeElement
       ) {
+        if (child instanceof AttributeGroupElement) {
+          console.log(
+            "this is the return attribute groupdescription",
+            child.description(definitions, xmlns)
+          );
+        }
         return child.description(definitions, xmlns);
       }
     }
@@ -560,36 +570,120 @@ export class SimpleContentElement extends Element {
   }
 }
 
-export class AttributeGroupElement extends Element {
+export class AttributeGroupElement extends ElementElement {
   constructor(nsName: string, attrs, options?: IWsdlBaseOptions, schemaAttrs?) {
     super(nsName, attrs, options, schemaAttrs);
 
     // console.log("creating attribute group class");
   }
+
+  public targetNSAlias?: string;
+
   public readonly allowedChildren = buildAllowedChildren([
     "attribute",
     "attributeGroup",
   ]);
-  public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
-    let attribGroupDesc = {};
-    for (const child of this.children) {
-      if (child instanceof AttributeGroupElement) {
-        return child.description(definitions, xmlns);
-      }
 
-      // get the ref name and make it as key name for the return objecf
-      const attributeGroupKey = this.attrs.ref;
-      const attributeGroupValue = {};
-      attribGroupDesc[attributeGroupKey] = attributeGroupValue;
-      // get the actual reference and have it as a value to they key name
-      // for (const key in description) {
-      //   attribGroup[key] = description[key];
-      // }
-    }
-    // console.log("this is the description of attrib group", attribGroup);
-    console.log("this is the attrib groupDesc", attribGroupDesc, xmlns);
-    return attribGroupDesc;
-  }
+  // public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
+  //   let attribGroupDesc = {};
+  //   console.log("this is the chiuldren", this.children.length, this.attrs.ref);
+  //   let element = {};
+  //   let name = this.$name;
+  //   // if no valid children use the element.description
+  //   if (this.attrs.ref) {
+  //     let type = this.attrs.ref;
+  //     if (type) {
+  //       type = splitQName(type);
+  //       const typeName: string = type.name;
+  //       const ns: string =
+  //         (xmlns && xmlns[type.prefix]) ||
+  //         ((definitions.xmlns[type.prefix] !== undefined ||
+  //           definitions.xmlns[this.targetNSAlias] !== undefined) &&
+  //           this.schemaXmlns[type.prefix]) ||
+  //         definitions.xmlns[type.prefix];
+  //       const schema = definitions.schemas[ns];
+  //       const typeElement =
+  //         schema &&
+  //         (type
+  //           ? schema.complexTypes[typeName] || schema.types[typeName]
+  //           : schema.elements[typeName]);
+  //       const typeStorage = type
+  //         ? definitions.descriptions.types
+  //         : definitions.descriptions.elements;
+
+  //       if (ns && definitions.schemas[ns]) {
+  //         xmlns = definitions.schemas[ns].xmlns;
+  //       }
+
+  //       if (typeElement && !(typeName in Primitives)) {
+  //         if (!(typeName in typeStorage)) {
+  //           let elem: any = {};
+  //           typeStorage[typeName] = elem;
+
+  //           const description = typeElement.description(definitions, xmlns);
+  //           if (typeof description === "string") {
+  //             elem = description;
+  //           } else {
+  //             Object.keys(description).forEach((key) => {
+  //               elem[key] = description[key];
+  //             });
+  //           }
+
+  //           if (type) {
+  //             element = elem;
+  //           } else {
+  //             element[name] = elem;
+  //           }
+
+  //           if (typeof elem === "object") {
+  //             elem.targetNSAlias = type.prefix;
+  //             elem.targetNamespace = ns;
+  //           }
+
+  //           typeStorage[typeName] = elem;
+  //         } else {
+  //           if (element) {
+  //             element = typeStorage[typeName];
+  //           } else {
+  //             element[name] = typeStorage[typeName];
+  //           }
+  //         }
+  //       } else {
+  //         element[name] = type;
+  //       }
+  //     } else {
+  //       const children = this.children;
+  //       element[name] = {};
+  //       for (const child of children) {
+  //         if (
+  //           child instanceof ComplexTypeElement ||
+  //           child instanceof SimpleTypeElement
+  //         ) {
+  //           element[name] = child.description(definitions, xmlns);
+  //         }
+  //       }
+  //     }
+  //     return element;
+  //   }
+  //   for (const child of this.children) {
+  //     const description = child.description(definitions, xmlns);
+  //     console.log("this is the description", description);
+  //     if (child instanceof AttributeGroupElement) {
+  //       return child.description(definitions, xmlns);
+  //     }
+
+  //     // get the ref name and make it as key name for the return objecf
+  //     // const attributeGroupKey = this.attrs.ref;
+  //     // const attributeGroupValue = {};
+  //     // attribGroupDesc[attributeGroupKey] = attributeGroupValue;
+  //     // get the actual reference and have it as a value to they key name
+  //     // for (const key in description) {
+  //     //   attribGroup[key] = description[key];
+  //     // }
+  //   }
+  //   // console.log("this is the description of attrib group", attribGroup);
+  //   return attribGroupDesc;
+  // }
 }
 
 export class AttributeElement extends ElementElement {
