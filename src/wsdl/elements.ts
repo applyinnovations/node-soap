@@ -138,9 +138,9 @@ export class Element {
     if (ChildClass) {
       const child = new ChildClass(nsName, attrs, options, schemaXmlns);
       child.init();
+
       stack.push(child);
     } else {
-      // console.log("CHild class", nsName);
       this.unexpected(nsName);
     }
   }
@@ -245,7 +245,6 @@ export class ElementElement extends Element {
           child instanceof AttributeElement ||
           child instanceof AttributeGroupElement
         ) {
-          // console.log("it went here", child);
           isAttributeGroupWithAttributeChildren = true;
         }
       }
@@ -257,13 +256,21 @@ export class ElementElement extends Element {
           child instanceof AttributeGroupElement ||
           child instanceof AttributeElement
         ) {
+          const newDesc = child.description(definitions, xmlns);
+          // @ts-ignore
+          const subAttributes = newDesc?.attributes || {};
+          if (subAttributes) {
+            // @ts-ignore
+            delete newDesc.attributes;
+          }
           attribGroupDesc = {
             ...attribGroupDesc,
-            ...child.description(definitions, xmlns),
+            ...newDesc,
+            ...subAttributes,
           };
         }
       }
-      element[name] = attribGroupDesc;
+      element["attributes"] = attribGroupDesc;
     } else if (type) {
       type = splitQName(type);
       const typeName: string = type.name;
@@ -565,14 +572,9 @@ export class ComplexTypeElement extends Element {
         child instanceof AttributeGroupElement ||
         child instanceof AttributeElement
       ) {
-        if (child instanceof AttributeGroupElement) {
-          console.log(
-            "this is the return attribute groupdescription",
-            this.attrs,
-            child.description(definitions, xmlns)
-          );
-        }
-        return child.description(definitions, xmlns);
+        const desc = child.description(definitions, xmlns);
+
+        return desc;
       }
     }
     return {};
