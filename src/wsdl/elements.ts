@@ -256,6 +256,7 @@ export class ElementElement extends Element {
           child instanceof AttributeGroupElement ||
           child instanceof AttributeElement
         ) {
+          console.log("this is the attrs", this.attrs);
           const newDesc = child.description(definitions, xmlns);
           // @ts-ignore
           const subAttributes = newDesc?.attributes || {};
@@ -358,6 +359,10 @@ export class ElementElement extends Element {
     // if (isAttributeGroupWithAttributeChildren) {
     //   console.log("this=======>", element);
     // }
+    if (isAttributeGroup) {
+      console.log("this is the element", element);
+    }
+
     return element;
   }
 }
@@ -572,6 +577,7 @@ export class ComplexTypeElement extends Element {
         child instanceof AttributeGroupElement ||
         child instanceof AttributeElement
       ) {
+        // console.log("COMPLEXT TYPES=", child);
         const desc = child.description(definitions, xmlns);
 
         return desc;

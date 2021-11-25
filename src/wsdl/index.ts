@@ -1499,7 +1499,7 @@ export class WSDL {
       }
       if (top) {
         try {
-          // if (name === "element") {
+          // if (name === "attributeGroup") {
           //   console.log(`parent of attributeGroup is ${top.name}`);
           // }
           // if (name === "attribute") {
