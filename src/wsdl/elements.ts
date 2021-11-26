@@ -195,7 +195,6 @@ export class ElementElement extends Element {
     "annotation",
     "complexType",
     "simpleType",
-    "attributeGroup",
     "attribute",
   ]);
   public $minOccurs?: string;
@@ -215,7 +214,10 @@ export class ElementElement extends Element {
     // These are default values for an element
     let minOccurs = 1;
     let maxOccurs = 1;
-
+    const children = this.children;
+    if (this.nsName === "xs:attribute" && children.length > 1) {
+      console.log("ATTRIBUTES CHILDREN", children);
+    }
     if (this.$maxOccurs === "unbounded") {
       maxOccurs = Infinity;
     } else if (Boolean(this.$maxOccurs)) {
@@ -296,7 +298,6 @@ export class ElementElement extends Element {
         element[name] = this.$type;
       }
     } else {
-      const children = this.children;
       element[name] = {};
       for (const child of children) {
         if (
@@ -436,14 +437,20 @@ export class ExtensionElement extends Element {
 
   public description(definitions: DefinitionsElement, xmlns?: IXmlNs) {
     let desc = {};
+
     for (const child of this.children) {
-      if (
-        child instanceof SequenceElement ||
-        child instanceof ChoiceElement ||
-        child instanceof AttributeGroupElement ||
-        child instanceof AttributeElement
-      ) {
-        desc = child.description(definitions, xmlns);
+      const childDesc = child.description(definitions, xmlns);
+      if (child instanceof SequenceElement || child instanceof ChoiceElement) {
+        desc = childDesc;
+      }
+
+      if (child instanceof AttributeGroupElement) {
+        // @ts-ignore
+        desc?.attributes = childDesc?.attributes;
+      }
+      if (child instanceof AttributeElement) {
+        // @ts-ignore
+        desc?.attributes = childDesc;
       }
     }
     if (this.$base) {
@@ -466,6 +473,10 @@ export class ExtensionElement extends Element {
           desc = typeof base === "string" ? base : _.defaults(base, desc);
         }
       }
+    }
+    // @ts-ignore
+    if (desc?.attributes?.attributes) {
+      console.log("it went here shiiiiit");
     }
     return desc;
   }
@@ -550,7 +561,7 @@ export class ComplexTypeElement extends Element {
 
     return {
       ...allDesc,
-      // attributes: attribGroupDesc,
+      attributes: attribGroupDesc,
     };
   }
 }
@@ -580,12 +591,13 @@ export class SimpleContentElement extends Element {
 }
 
 export class AttributeGroupElement extends Element {
-  constructor(nsName: string, attrs, options?: IWsdlBaseOptions, schemaAttrs?) {
-    super(nsName, attrs, options, schemaAttrs);
-
-    // console.log("creating attribute group class");
-  }
-
+  public readonly allowedChildren = buildAllowedChildren([
+    "annotation",
+    "complexType",
+    "simpleType",
+    "attributeGroup",
+    "attribute",
+  ]);
   public $minOccurs?: string;
   public $maxOccurs?: string;
   public $type?: string;
@@ -595,15 +607,9 @@ export class AttributeGroupElement extends Element {
   public $lookupType?: string;
   public $lookupTypes?: any[];
 
-  public readonly allowedChildren = buildAllowedChildren([
-    "attribute",
-    "attributeGroup",
-  ]);
-
   public description(definitions: DefinitionsElement, xmlns?: IXmlNs) {
     let element = {};
     let name = this.$name;
-    // console.log("this is the attrs", name, this.attrs.ref, this.nsName);
 
     // Check minOccurs / maxOccurs attributes to see if this element is a list
     // These are default values for an element
@@ -666,11 +672,7 @@ export class AttributeGroupElement extends Element {
       }
       element["attributes"] = attribGroupDesc;
     } else if (type) {
-      // if (this.attrs.ref === "EffectiveExpireOptionalDateGroup") {
-      //   console.log("this is the type", type);
-      // }
       type = splitQName(type);
-
       const typeName: string = type.name;
 
       const ns: string =
@@ -741,28 +743,6 @@ export class AttributeGroupElement extends Element {
         }
       }
     }
-    // console.log("this is the name BEFORE", name, type);
-    // if (type.name === "Money") {
-    //   console.log("this is the element", element);
-    // }
-    // for (const child of this.children) {
-    //   if (child instanceof AttributeElement) {
-    //     if (child instanceof AttributeElement) {
-    //       console.log("this is the name", name, type);
-    //     }
-    //     console.log("this is the element", this.attrs.ref, name, element);
-    //   }
-    // }
-    // if (isAttributeGroupWithAttributeChildren) {
-    //   console.log("this=======>", element);
-    // }
-
-    // if (this.attrs.ref === "EffectiveExpireOptionalDateGroup") {
-    //   console.log("this is the element", element);
-    // }
-    // if (isAttributeGroup) {
-    //   console.log("this is the element", element);
-    // }
 
     return element;
   }
@@ -771,19 +751,7 @@ export class AttributeGroupElement extends Element {
 export class AttributeElement extends ElementElement {
   constructor(nsName: string, attrs, options?: IWsdlBaseOptions, schemaAttrs?) {
     super(nsName, attrs, options, schemaAttrs);
-    // console.log("creating attribute class");
   }
-  // public readonly allowedChildren = buildAllowedChildren(["attribute"]);
-  // public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
-  //   const sequence = {};
-  //   for (const child of this.children) {
-  //     const description = child.description(definitions, xmlns);
-  //     for (const key in description) {
-  //       sequence[key] = description[key];
-  //     }
-  //   }
-  //   return sequence;
-  // }
 }
 
 export class SequenceElement extends Element {
@@ -1100,7 +1068,7 @@ export class SchemaElement extends Element {
     } else if (child instanceof AttributeElement) {
       this.types[child.$name] = child;
     } else if (child instanceof AttributeGroupElement) {
-      this.attributeGroup[child.$name] = child;
+      this.types[child.$name] = child;
     } else this.children.pop();
     // child.deleteFixedAttrs();
   }
