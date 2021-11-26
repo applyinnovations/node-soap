@@ -236,53 +236,15 @@ export class ElementElement extends Element {
       this.$targetNamespace = xmlns[TNS_PREFIX];
     }
     let type: any = this.$type || this.$ref;
-    const isAttributeGroup = this.nsName === "xs:attributeGroup";
-    const children = this.children;
-    let isAttributeGroupWithAttributeChildren = false;
-    if (isAttributeGroup) {
-      for (const child of children) {
-        if (
-          child instanceof AttributeElement ||
-          child instanceof AttributeGroupElement
-        ) {
-          isAttributeGroupWithAttributeChildren = true;
-        }
-      }
-    }
-    if (isAttributeGroupWithAttributeChildren) {
-      let attribGroupDesc = {};
-      for (const child of children) {
-        if (
-          child instanceof AttributeGroupElement ||
-          child instanceof AttributeElement
-        ) {
-          console.log("this is the attrs", this.attrs);
-          const newDesc = child.description(definitions, xmlns);
-          // @ts-ignore
-          const subAttributes = newDesc?.attributes || {};
-          if (subAttributes) {
-            // @ts-ignore
-            delete newDesc.attributes;
-          }
-          attribGroupDesc = {
-            ...attribGroupDesc,
-            ...newDesc,
-            ...subAttributes,
-          };
-        }
-      }
-      element["attributes"] = attribGroupDesc;
-    } else if (type) {
+    if (type) {
       type = splitQName(type);
       const typeName: string = type.name;
-
       const ns: string =
         (xmlns && xmlns[type.prefix]) ||
         ((definitions.xmlns[type.prefix] !== undefined ||
           definitions.xmlns[this.targetNSAlias] !== undefined) &&
           this.schemaXmlns[type.prefix]) ||
         definitions.xmlns[type.prefix];
-
       const schema = definitions.schemas[ns];
       const typeElement =
         schema &&
@@ -334,6 +296,7 @@ export class ElementElement extends Element {
         element[name] = this.$type;
       }
     } else {
+      const children = this.children;
       element[name] = {};
       for (const child of children) {
         if (
@@ -344,25 +307,6 @@ export class ElementElement extends Element {
         }
       }
     }
-    // console.log("this is the name BEFORE", name, type);
-    // if (type.name === "Money") {
-    //   console.log("this is the element", element);
-    // }
-    // for (const child of this.children) {
-    //   if (child instanceof AttributeElement) {
-    //     if (child instanceof AttributeElement) {
-    //       console.log("this is the name", name, type);
-    //     }
-    //     console.log("this is the element", this.attrs.ref, name, element);
-    //   }
-    // }
-    // if (isAttributeGroupWithAttributeChildren) {
-    //   console.log("this=======>", element);
-    // }
-    if (isAttributeGroup) {
-      console.log("this is the element", element);
-    }
-
     return element;
   }
 }
@@ -567,23 +511,47 @@ export class ComplexTypeElement extends Element {
 
   public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
     const children = this.children || [];
+    let allDesc = {};
+    let attribGroupDesc = {};
     for (const child of children) {
       if (
         child instanceof ChoiceElement ||
         child instanceof SequenceElement ||
         child instanceof AllElement ||
         child instanceof SimpleContentElement ||
-        child instanceof ComplexContentElement ||
-        child instanceof AttributeGroupElement ||
-        child instanceof AttributeElement
+        child instanceof ComplexContentElement
       ) {
         // console.log("COMPLEXT TYPES=", child);
-        const desc = child.description(definitions, xmlns);
+        allDesc = child.description(definitions, xmlns);
+      }
+      if (child instanceof AttributeGroupElement) {
+        let descGroupAttribute = child.description(definitions, xmlns);
+        attribGroupDesc = {
+          ...attribGroupDesc,
+          // @ts-ignore
+          ...descGroupAttribute.attributes,
+        };
+      }
 
-        return desc;
+      if (child instanceof AttributeElement) {
+        let descAttribute = child.description(definitions, xmlns);
+        attribGroupDesc = {
+          ...attribGroupDesc,
+          ...descAttribute,
+        };
+      }
+      if (
+        child instanceof AttributeElement ||
+        child instanceof AttributeGroupElement
+      ) {
+        console.log("this is the return value of complexType", attribGroupDesc);
       }
     }
-    return {};
+
+    return {
+      ...allDesc,
+      // attributes: attribGroupDesc,
+    };
   }
 }
 
@@ -611,258 +579,193 @@ export class SimpleContentElement extends Element {
   }
 }
 
-export class AttributeGroupElement extends ElementElement {
+export class AttributeGroupElement extends Element {
   constructor(nsName: string, attrs, options?: IWsdlBaseOptions, schemaAttrs?) {
     super(nsName, attrs, options, schemaAttrs);
 
     // console.log("creating attribute group class");
   }
 
+  public $minOccurs?: string;
+  public $maxOccurs?: string;
+  public $type?: string;
+  public $ref?: string;
   public targetNSAlias?: string;
+  public targetNamespace?: string;
+  public $lookupType?: string;
+  public $lookupTypes?: any[];
 
   public readonly allowedChildren = buildAllowedChildren([
     "attribute",
     "attributeGroup",
   ]);
 
-  // public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
-  //   const attribGroup = {};
-  //   for (const child of this.children) {
-  //     const description = child.description(definitions, xmlns);
-  //     if (description === "annotation") {
-  //       return;
-  //     }
-  //     console.log("this is the description", description);
-  //     for (const key in description) {
-  //       attribGroup[key] = description[key];
-  //     }
-  //   }
+  public description(definitions: DefinitionsElement, xmlns?: IXmlNs) {
+    let element = {};
+    let name = this.$name;
+    // console.log("this is the attrs", name, this.attrs.ref, this.nsName);
 
-  //   return attribGroup;
+    // Check minOccurs / maxOccurs attributes to see if this element is a list
+    // These are default values for an element
+    let minOccurs = 1;
+    let maxOccurs = 1;
 
-  // let element = {};
-  // let name = this.$name;
+    if (this.$maxOccurs === "unbounded") {
+      maxOccurs = Infinity;
+    } else if (Boolean(this.$maxOccurs)) {
+      maxOccurs = parseInt(this.$maxOccurs, 10);
+    }
 
-  // // Check minOccurs / maxOccurs attributes to see if this element is a list
-  // // These are default values for an element
-  // let minOccurs = 1;
-  // let maxOccurs = 1;
+    if (Boolean(this.$minOccurs)) {
+      minOccurs = parseInt(this.$minOccurs, 10);
+    }
 
-  // if (this.$maxOccurs === "unbounded") {
-  //   maxOccurs = Infinity;
-  // } else if (Boolean(this.$maxOccurs)) {
-  //   maxOccurs = parseInt(this.$maxOccurs, 10);
-  // }
+    const isMany = maxOccurs > 1;
 
-  // if (Boolean(this.$minOccurs)) {
-  //   minOccurs = parseInt(this.$minOccurs, 10);
-  // }
+    if (isMany) {
+      name += "[]";
+    }
 
-  // const isMany = maxOccurs > 1;
+    if (xmlns && xmlns[TNS_PREFIX]) {
+      this.$targetNamespace = xmlns[TNS_PREFIX];
+    }
+    let type: any = this.$type || this.$ref;
+    const isAttributeGroup = this.nsName === "xs:attributeGroup";
+    const children = this.children;
+    let isAttributeGroupWithAttributeChildren = false;
+    if (isAttributeGroup) {
+      for (const child of children) {
+        if (
+          child instanceof AttributeElement ||
+          child instanceof AttributeGroupElement
+        ) {
+          isAttributeGroupWithAttributeChildren = true;
+        }
+      }
+    }
+    if (isAttributeGroupWithAttributeChildren) {
+      let attribGroupDesc = {};
+      for (const child of children) {
+        if (
+          child instanceof AttributeGroupElement ||
+          child instanceof AttributeElement
+        ) {
+          const newDesc = child.description(definitions, xmlns);
+          // @ts-ignore
+          const subAttributes = newDesc?.attributes || {};
+          if (subAttributes) {
+            // @ts-ignore
+            delete newDesc.attributes;
+          }
+          attribGroupDesc = {
+            ...attribGroupDesc,
+            ...newDesc,
+            ...subAttributes,
+          };
+        }
+      }
+      element["attributes"] = attribGroupDesc;
+    } else if (type) {
+      // if (this.attrs.ref === "EffectiveExpireOptionalDateGroup") {
+      //   console.log("this is the type", type);
+      // }
+      type = splitQName(type);
 
-  // if (isMany) {
-  //   name += "[]";
-  // }
+      const typeName: string = type.name;
 
-  // if (xmlns && xmlns[TNS_PREFIX]) {
-  //   this.$targetNamespace = xmlns[TNS_PREFIX];
-  // }
-  // let type: any = this.attrs.ref;
+      const ns: string =
+        (xmlns && xmlns[type.prefix]) ||
+        ((definitions.xmlns[type.prefix] !== undefined ||
+          definitions.xmlns[this.targetNSAlias] !== undefined) &&
+          this.schemaXmlns[type.prefix]) ||
+        definitions.xmlns[type.prefix];
 
-  // if (this.attrs.ref) {
-  //   const typeName = this.attrs.ref;
+      const schema = definitions.schemas[ns];
+      const typeElement =
+        schema &&
+        (this.$type
+          ? schema.complexTypes[typeName] || schema.types[typeName]
+          : schema.elements[typeName]);
+      const typeStorage = this.$type
+        ? definitions.descriptions.types
+        : definitions.descriptions.elements;
 
-  //   const ns: string =
-  //     (xmlns && xmlns[type.prefix]) ||
-  //     ((definitions.xmlns[type.prefix] !== undefined ||
-  //       definitions.xmlns[this.targetNSAlias] !== undefined) &&
-  //       this.schemaXmlns[type.prefix]) ||
-  //     definitions.xmlns[type.prefix];
+      if (ns && definitions.schemas[ns]) {
+        xmlns = definitions.schemas[ns].xmlns;
+      }
 
-  //   const schema = definitions.schemas[ns];
-  //   const typeElement =
-  //     schema &&
-  //     (typeName
-  //       ? schema.complexTypes[typeName] || schema.types[typeName]
-  //       : schema.elements[typeName]);
-  //   const typeStorage = typeName
-  //     ? definitions.descriptions.types
-  //     : definitions.descriptions.elements;
+      if (typeElement && !(typeName in Primitives)) {
+        if (!(typeName in typeStorage)) {
+          let elem: any = {};
+          typeStorage[typeName] = elem;
 
-  //   if (ns && definitions.schemas[ns]) {
-  //     xmlns = definitions.schemas[ns].xmlns;
-  //   }
+          const description = typeElement.description(definitions, xmlns);
+          if (typeof description === "string") {
+            elem = description;
+          } else {
+            Object.keys(description).forEach((key) => {
+              elem[key] = description[key];
+            });
+          }
 
-  //   if (typeElement && !(typeName in Primitives)) {
-  //     if (!(typeName in typeStorage)) {
-  //       let elem: any = {};
-  //       typeStorage[typeName] = elem;
+          if (this.$ref) {
+            element = elem;
+          } else {
+            element[name] = elem;
+          }
 
-  //       const description = typeElement.description(definitions, xmlns);
-  //       if (typeof description === "string") {
-  //         elem = description;
-  //       } else {
-  //         Object.keys(description).forEach((key) => {
-  //           elem[key] = description[key];
-  //         });
-  //       }
+          if (typeof elem === "object") {
+            elem.targetNSAlias = type.prefix;
+            elem.targetNamespace = ns;
+          }
 
-  //       // if (this.$ref) {
-  //       //   element = elem;
-  //       // } else {
-  //       //   element[name] = elem;
-  //       // }
+          typeStorage[typeName] = elem;
+        } else {
+          if (this.$ref) {
+            element = typeStorage[typeName];
+          } else {
+            element[name] = typeStorage[typeName];
+          }
+        }
+      } else {
+        element[name] = this.$type;
+      }
+    } else {
+      element[name] = {};
+      for (const child of children) {
+        if (
+          child instanceof ComplexTypeElement ||
+          child instanceof SimpleTypeElement
+        ) {
+          element[name] = child.description(definitions, xmlns);
+        }
+      }
+    }
+    // console.log("this is the name BEFORE", name, type);
+    // if (type.name === "Money") {
+    //   console.log("this is the element", element);
+    // }
+    // for (const child of this.children) {
+    //   if (child instanceof AttributeElement) {
+    //     if (child instanceof AttributeElement) {
+    //       console.log("this is the name", name, type);
+    //     }
+    //     console.log("this is the element", this.attrs.ref, name, element);
+    //   }
+    // }
+    // if (isAttributeGroupWithAttributeChildren) {
+    //   console.log("this=======>", element);
+    // }
 
-  //       if (typeof elem === "object") {
-  //         elem.targetNSAlias = type.prefix;
-  //         elem.targetNamespace = ns;
-  //       }
+    // if (this.attrs.ref === "EffectiveExpireOptionalDateGroup") {
+    //   console.log("this is the element", element);
+    // }
+    // if (isAttributeGroup) {
+    //   console.log("this is the element", element);
+    // }
 
-  //       typeStorage[typeName] = elem;
-  //     } else {
-  //       // if (this.$ref) {
-  //       //   element = typeStorage[typeName];
-  //       // } else {
-  //       //   element[name] = typeStorage[typeName];
-  //       // }
-  //       element[name] = typeStorage[typeName];
-  //     }
-  //   }
-  //   // else {
-  //   //   element[name] = this.$type;
-  //   // }
-  // } else {
-  //   const children = this.children;
-  //   element[name] = {};
-  //   for (const child of children) {
-  //     if (
-  //       child instanceof ComplexTypeElement ||
-  //       child instanceof SimpleTypeElement ||
-  //       child instanceof AttributeGroupElement ||
-  //       child instanceof AttributeElement
-  //     ) {
-  //       element[name] = child.description(definitions, xmlns);
-  //     }
-  //   }
-  // }
-
-  // return element;
-  // }
-
-  // public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
-  //   const children = this.children;
-
-  //   for (const child of this.children) {
-  //     if (child instanceof AttributeElement)
-  //       return child.description(definitions, xmlns);
-  //   }
-
-  // }
-  //   const children = this.children;
-  //   for (const child of this.children) {
-  //     if (child instanceof AttributeElement)
-  //       return child.description(definitions, xmlns);
-  //   }
-  // }
-  //   let attribGroupDesc = {};
-  //   console.log("this is the chiuldren", this.children.length, this.attrs.ref);
-  //   let element = {};
-  //   let name = this.$name;
-  //   // if no valid children use the element.description
-  //   if (this.attrs.ref) {
-  //     let type = this.attrs.ref;
-  //     if (type) {
-  //       type = splitQName(type);
-  //       const typeName: string = type.name;
-  //       const ns: string =
-  //         (xmlns && xmlns[type.prefix]) ||
-  //         ((definitions.xmlns[type.prefix] !== undefined ||
-  //           definitions.xmlns[this.targetNSAlias] !== undefined) &&
-  //           this.schemaXmlns[type.prefix]) ||
-  //         definitions.xmlns[type.prefix];
-  //       const schema = definitions.schemas[ns];
-  //       const typeElement =
-  //         schema &&
-  //         (type
-  //           ? schema.complexTypes[typeName] || schema.types[typeName]
-  //           : schema.elements[typeName]);
-  //       const typeStorage = type
-  //         ? definitions.descriptions.types
-  //         : definitions.descriptions.elements;
-
-  //       if (ns && definitions.schemas[ns]) {
-  //         xmlns = definitions.schemas[ns].xmlns;
-  //       }
-
-  //       if (typeElement && !(typeName in Primitives)) {
-  //         if (!(typeName in typeStorage)) {
-  //           let elem: any = {};
-  //           typeStorage[typeName] = elem;
-
-  //           const description = typeElement.description(definitions, xmlns);
-  //           if (typeof description === "string") {
-  //             elem = description;
-  //           } else {
-  //             Object.keys(description).forEach((key) => {
-  //               elem[key] = description[key];
-  //             });
-  //           }
-
-  //           if (type) {
-  //             element = elem;
-  //           } else {
-  //             element[name] = elem;
-  //           }
-
-  //           if (typeof elem === "object") {
-  //             elem.targetNSAlias = type.prefix;
-  //             elem.targetNamespace = ns;
-  //           }
-
-  //           typeStorage[typeName] = elem;
-  //         } else {
-  //           if (element) {
-  //             element = typeStorage[typeName];
-  //           } else {
-  //             element[name] = typeStorage[typeName];
-  //           }
-  //         }
-  //       } else {
-  //         element[name] = type;
-  //       }
-  //     } else {
-  //       const children = this.children;
-  //       element[name] = {};
-  //       for (const child of children) {
-  //         if (
-  //           child instanceof ComplexTypeElement ||
-  //           child instanceof SimpleTypeElement
-  //         ) {
-  //           element[name] = child.description(definitions, xmlns);
-  //         }
-  //       }
-  //     }
-  //     return element;
-  //   }
-  //   for (const child of this.children) {
-  //     const description = child.description(definitions, xmlns);
-  //     console.log("this is the description", description);
-  //     if (child instanceof AttributeGroupElement) {
-  //       return child.description(definitions, xmlns);
-  //     }
-
-  //     // get the ref name and make it as key name for the return objecf
-  //     // const attributeGroupKey = this.attrs.ref;
-  //     // const attributeGroupValue = {};
-  //     // attribGroupDesc[attributeGroupKey] = attributeGroupValue;
-  //     // get the actual reference and have it as a value to they key name
-  //     // for (const key in description) {
-  //     //   attribGroup[key] = description[key];
-  //     // }
-  //   }
-  //   // console.log("this is the description of attrib group", attribGroup);
-  //   return attribGroupDesc;
-  // }
+    return element;
+  }
 }
 
 export class AttributeElement extends ElementElement {
