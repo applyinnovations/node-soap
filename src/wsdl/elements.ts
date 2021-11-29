@@ -481,11 +481,14 @@ export class ExtensionElement extends Element {
 
       if (child instanceof AttributeGroupElement) {
         // @ts-ignore
-        attribDesc = childDesc?.attributes;
+        return {
+          attributes: childDesc?.attributes,
+        };
       }
       if (child instanceof AttributeElement) {
-        // @ts-ignore
-        attribDesc = childDesc;
+        return {
+          attributes: childDesc,
+        };
       }
     }
     if (this.$base) {
@@ -508,14 +511,18 @@ export class ExtensionElement extends Element {
           desc = typeof base === "string" ? base : _.defaults(base, desc);
         }
       }
+
+      if (typeName === "StringLength1to128") {
+        console.log("this is the typeName", desc);
+      }
     }
 
     // @ts-ignore
+    if (!isEmptyObject(attribDesc)) {
+      return { attributes: attribDesc };
+    }
 
-    return {
-      ...desc,
-      attributes: attribDesc,
-    };
+    return desc;
   }
 }
 
@@ -544,6 +551,28 @@ export class EnumerationElement extends Element {
     return this[this.valueKey];
   }
 }
+// const flattenAttributes = (data) => {
+//   let flattenedData = data;
+//   let subAttributes = data?.attributes;
+//   delete flattenedData.attributes;
+//   if (subAttributes) {
+
+//     return {
+//       ...flattenedData,
+//       ...subAttributes
+//     };
+
+//   }
+// };
+
+const isEmptyObject = (obj) => {
+  return (
+    typeof obj === "object" &&
+    obj && // 👈 null and undefined check
+    Object.keys(obj).length === 0 &&
+    Object.getPrototypeOf(obj) === Object.prototype
+  );
+};
 
 export class ComplexTypeElement extends Element {
   public readonly allowedChildren = buildAllowedChildren([
@@ -570,10 +599,10 @@ export class ComplexTypeElement extends Element {
         child instanceof SimpleContentElement ||
         child instanceof ComplexContentElement
       ) {
-        allDesc = {
-          ...allDesc,
-          ...desc,
-        };
+        allDesc = desc;
+        // if (desc["CompanyName"]) {
+        //   console.log("this is the desc", desc);
+        // }
       }
 
       if (child instanceof AttributeGroupElement) {
@@ -595,11 +624,12 @@ export class ComplexTypeElement extends Element {
         };
       }
     }
+    if (!isEmptyObject(descAttributes)) {
+      // @ts-ignore
+      allDesc.attributes = descAttributes.attributes;
+    }
 
-    return {
-      ...allDesc,
-      ...descAttributes,
-    };
+    return allDesc;
   }
 }
 
@@ -805,10 +835,16 @@ export class SequenceElement extends Element {
         continue;
       }
       const description = child.description(definitions, xmlns);
+
       for (const key in description) {
         sequence[key] = description[key];
       }
     }
+    // @ts-ignore
+    // if (sequence.CompanyName) {
+    //   console.log(sequence);
+    // }
+
     return sequence;
   }
 }
