@@ -437,7 +437,7 @@ export class ExtensionElement extends Element {
 
   public description(definitions: DefinitionsElement, xmlns?: IXmlNs) {
     let desc = {};
-
+    let attribDesc = {};
     for (const child of this.children) {
       const childDesc = child.description(definitions, xmlns);
       if (child instanceof SequenceElement || child instanceof ChoiceElement) {
@@ -446,11 +446,11 @@ export class ExtensionElement extends Element {
 
       if (child instanceof AttributeGroupElement) {
         // @ts-ignore
-        desc?.attributes = childDesc?.attributes;
+        attribDesc = childDesc?.attributes;
       }
       if (child instanceof AttributeElement) {
         // @ts-ignore
-        desc?.attributes = childDesc;
+        attribDesc = childDesc;
       }
     }
     if (this.$base) {
@@ -474,11 +474,15 @@ export class ExtensionElement extends Element {
         }
       }
     }
+
     // @ts-ignore
-    if (desc?.attributes?.attributes) {
+    if (attribDesc?.attributes) {
       console.log("it went here shiiiiit");
     }
-    return desc;
+    return {
+      ...desc,
+      // attributes: attribDesc,
+    };
   }
 }
 
@@ -524,7 +528,9 @@ export class ComplexTypeElement extends Element {
     const children = this.children || [];
     let allDesc = {};
     let attribGroupDesc = {};
+
     for (const child of children) {
+      let desc = child.description(definitions, xmlns);
       if (
         child instanceof ChoiceElement ||
         child instanceof SequenceElement ||
@@ -533,22 +539,20 @@ export class ComplexTypeElement extends Element {
         child instanceof ComplexContentElement
       ) {
         // console.log("COMPLEXT TYPES=", child);
-        allDesc = child.description(definitions, xmlns);
+        allDesc = desc;
       }
+
       if (child instanceof AttributeGroupElement) {
-        let descGroupAttribute = child.description(definitions, xmlns);
         attribGroupDesc = {
           ...attribGroupDesc,
           // @ts-ignore
-          ...descGroupAttribute.attributes,
+          ...desc.attributes,
         };
       }
-
       if (child instanceof AttributeElement) {
-        let descAttribute = child.description(definitions, xmlns);
         attribGroupDesc = {
           ...attribGroupDesc,
-          ...descAttribute,
+          ...desc,
         };
       }
       if (
@@ -561,7 +565,7 @@ export class ComplexTypeElement extends Element {
 
     return {
       ...allDesc,
-      attributes: attribGroupDesc,
+      // attributes: attribGroupDesc,
     };
   }
 }
