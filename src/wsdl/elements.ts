@@ -481,13 +481,16 @@ export class ExtensionElement extends Element {
 
       if (child instanceof AttributeGroupElement) {
         // @ts-ignore
-        return {
-          attributes: childDesc?.attributes,
+        attribDesc = {
+          ...attribDesc,
+          ...childDesc?.attributes,
         };
       }
       if (child instanceof AttributeElement) {
-        return {
-          attributes: childDesc,
+        // @ts-ignore
+        attribDesc = {
+          ...attribDesc,
+          ...childDesc,
         };
       }
     }
