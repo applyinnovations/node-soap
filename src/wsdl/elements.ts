@@ -1,6 +1,8 @@
 import { ok as assert } from "assert";
 import * as debugBuilder from "debug";
 import * as _ from "lodash";
+import { type } from "os";
+import { off } from "process";
 import { IWsdlBaseOptions } from "../types";
 import { splitQName, TNS_PREFIX } from "../utils";
 
@@ -215,9 +217,6 @@ export class ElementElement extends Element {
     let minOccurs = 1;
     let maxOccurs = 1;
 
-    // if (this.nsName === "xs:attribute" && children.length > 1) {
-    //   console.log("ATTRIBUTES CHILDREN", children);
-    // }
     if (this.$maxOccurs === "unbounded") {
       maxOccurs = Infinity;
     } else if (Boolean(this.$maxOccurs)) {
@@ -514,15 +513,13 @@ export class ExtensionElement extends Element {
           desc = typeof base === "string" ? base : _.defaults(base, desc);
         }
       }
-
-      if (typeName === "StringLength1to128") {
-        console.log("this is the typeName", desc);
-      }
     }
 
-    // @ts-ignore
     if (!isEmptyObject(attribDesc)) {
-      return { attributes: attribDesc };
+      return {
+        attributes: attribDesc,
+        ...(typeof desc === "object" ? desc : {}),
+      };
     }
 
     return desc;
@@ -603,9 +600,6 @@ export class ComplexTypeElement extends Element {
         child instanceof ComplexContentElement
       ) {
         allDesc = desc;
-        // if (desc["CompanyName"]) {
-        //   console.log("this is the desc", desc);
-        // }
       }
 
       if (child instanceof AttributeGroupElement) {
@@ -627,8 +621,9 @@ export class ComplexTypeElement extends Element {
         };
       }
     }
-    if (!isEmptyObject(descAttributes)) {
+    if (!isEmptyObject(descAttributes) && typeof allDesc === "object") {
       // @ts-ignore
+
       allDesc.attributes = descAttributes.attributes;
     }
 
@@ -653,6 +648,7 @@ export class SimpleContentElement extends Element {
   public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
     for (const child of this.children) {
       if (child instanceof ExtensionElement) {
+        const desc = child.description(definitions, xmlns);
         return child.description(definitions, xmlns);
       }
     }
@@ -843,10 +839,6 @@ export class SequenceElement extends Element {
         sequence[key] = description[key];
       }
     }
-    // @ts-ignore
-    // if (sequence.CompanyName) {
-    //   console.log(sequence);
-    // }
 
     return sequence;
   }
