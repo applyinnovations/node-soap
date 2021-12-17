@@ -407,17 +407,36 @@ export class OutputElement extends Element {
     }
   }
 }
-
 export class SimpleTypeElement extends Element {
-  public readonly allowedChildren = buildAllowedChildren(["restriction"]);
+  public readonly allowedChildren = buildAllowedChildren([
+    "restriction",
+    "list",
+  ]);
 
   public description(definitions: DefinitionsElement) {
     for (const child of this.children) {
       if (child instanceof RestrictionElement) {
         return [this.$name, child.description()].filter(Boolean).join("|");
       }
+
+      if (child instanceof ListElement) {
+        return child.description(definitions);
+      }
     }
     return {};
+  }
+}
+
+export class ListElement extends Element {
+  public readonly allowedChildren = buildAllowedChildren([
+    "restriction",
+    "simpleType",
+  ]);
+
+  constructor(nsName: string, attrs, options?: IWsdlBaseOptions, schemaAttrs?) {
+    super(nsName, attrs, options, schemaAttrs);
+    // @ts-ignore
+    console.log(this.$itemType);
   }
 }
 
@@ -1385,6 +1404,7 @@ const ElementTypeMap: {
   types: TypesElement,
   attributeGroup: AttributeGroupElement,
   attribute: AttributeElement,
+  list: ListElement,
 };
 
 function buildAllowedChildren(elementList: string[]): {

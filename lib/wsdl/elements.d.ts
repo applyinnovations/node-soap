@@ -82,7 +82,13 @@ export declare class SimpleTypeElement extends Element {
     readonly allowedChildren: {
         [k: string]: typeof Element;
     };
-    description(definitions: DefinitionsElement): {};
+    description(definitions: DefinitionsElement): any;
+}
+export declare class ListElement extends Element {
+    readonly allowedChildren: {
+        [k: string]: typeof Element;
+    };
+    constructor(nsName: string, attrs: any, options?: IWsdlBaseOptions, schemaAttrs?: any);
 }
 export declare class RestrictionElement extends Element {
     readonly allowedChildren: {
