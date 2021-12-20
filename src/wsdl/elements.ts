@@ -250,30 +250,10 @@ export class ElementElement extends Element {
         }
       }
     }
-    if (isAttributeGroupWithAttributeChildren) {
-      let attribGroupDesc = {};
-      for (const child of children) {
-        if (
-          child instanceof AttributeGroupElement ||
-          child instanceof AttributeElement
-        ) {
-          const newDesc = child.description(definitions, xmlns);
-          // @ts-ignore
-          const subAttributes = newDesc?.attributes || {};
-          if (subAttributes) {
-            // @ts-ignore
-            delete newDesc.attributes;
-          }
-          attribGroupDesc = {
-            ...attribGroupDesc,
-            ...newDesc,
-            ...subAttributes,
-          };
-        }
-      }
-      element["attributes"] = attribGroupDesc;
-    } else if (type) {
+
+    if (type) {
       type = splitQName(type);
+
       const typeName: string = type.name;
       const ns: string =
         (xmlns && xmlns[type.prefix]) ||
@@ -342,6 +322,36 @@ export class ElementElement extends Element {
         }
       }
     }
+
+    // if (this?.$name === "AddressTypeHEYHEY") {
+    //   console.log("this is the element", element);
+    // }
+    if (isAttributeGroupWithAttributeChildren) {
+      let attribGroupDesc = {};
+      for (const child of children) {
+        if (
+          child instanceof AttributeGroupElement ||
+          child instanceof AttributeElement
+        ) {
+          const newDesc = child.description(definitions, xmlns);
+          // @ts-ignore
+          const subAttributes = newDesc?.attributes || {};
+          if (subAttributes) {
+            // @ts-ignore
+            delete newDesc.attributes;
+          }
+          attribGroupDesc = {
+            ...attribGroupDesc,
+            ...newDesc,
+            ...subAttributes,
+          };
+        }
+      }
+      element["attributes"] = {
+        ...element["attributes"],
+        ...attribGroupDesc,
+      };
+    }
     return element;
   }
 }
@@ -397,17 +407,36 @@ export class OutputElement extends Element {
     }
   }
 }
-
 export class SimpleTypeElement extends Element {
-  public readonly allowedChildren = buildAllowedChildren(["restriction"]);
+  public readonly allowedChildren = buildAllowedChildren([
+    "restriction",
+    "list",
+  ]);
 
   public description(definitions: DefinitionsElement) {
     for (const child of this.children) {
       if (child instanceof RestrictionElement) {
         return [this.$name, child.description()].filter(Boolean).join("|");
       }
+
+      if (child instanceof ListElement) {
+        return child.description(definitions);
+      }
     }
     return {};
+  }
+}
+
+export class ListElement extends Element {
+  public readonly allowedChildren = buildAllowedChildren([
+    "restriction",
+    "simpleType",
+  ]);
+
+  constructor(nsName: string, attrs, options?: IWsdlBaseOptions, schemaAttrs?) {
+    super(nsName, attrs, options, schemaAttrs);
+    // @ts-ignore
+    console.log(this.$itemType);
   }
 }
 
@@ -472,14 +501,22 @@ export class ExtensionElement extends Element {
   public description(definitions: DefinitionsElement, xmlns?: IXmlNs) {
     let desc = {};
     let attribDesc = {};
+    let allAttributes = [];
+    const myType = this.$base ? splitQName(this.$base) : { name: "heeeyy" };
+
     for (const child of this.children) {
       const childDesc = child.description(definitions, xmlns);
+
       if (child instanceof SequenceElement || child instanceof ChoiceElement) {
         desc = childDesc;
       }
 
       if (child instanceof AttributeGroupElement) {
         // @ts-ignore
+        // if (child.attrs?.ref === "DefaultIndGroupYehey") {
+        //   console.log("this is teh child", childDesc);
+        // }
+
         attribDesc = {
           ...attribDesc,
           ...childDesc?.attributes,
@@ -487,6 +524,7 @@ export class ExtensionElement extends Element {
       }
       if (child instanceof AttributeElement) {
         // @ts-ignore
+
         attribDesc = {
           ...attribDesc,
           ...childDesc,
@@ -508,6 +546,7 @@ export class ExtensionElement extends Element {
           (schema.complexTypes[typeName] ||
             schema.types[typeName] ||
             schema.elements[typeName]);
+
         if (typeElement) {
           const base = typeElement.description(definitions, schema.xmlns);
           desc = typeof base === "string" ? base : _.defaults(base, desc);
@@ -515,14 +554,20 @@ export class ExtensionElement extends Element {
       }
     }
 
+    let returnValue = desc;
+
     if (!isEmptyObject(attribDesc)) {
-      return {
-        attributes: attribDesc,
+      returnValue = {
         ...(typeof desc === "object" ? desc : {}),
+        attributes: {
+          ...attribDesc,
+          // @ts-ignore
+          ...(desc?.attributes ? desc?.attributes : {}),
+        },
       };
     }
 
-    return desc;
+    return returnValue;
   }
 }
 
@@ -592,14 +637,14 @@ export class ComplexTypeElement extends Element {
       if (child instanceof AttributeGroupElement) {
         descAttributes = {
           // @ts-ignore
-          ...descAttributes.attributes,
+          ...descAttributes,
           ...desc.attributes,
         };
       }
       if (child instanceof AttributeElement) {
         descAttributes = {
           // @ts-ignore
-          ...descAttributes.attributes,
+          ...descAttributes,
           ...desc,
         };
       }
@@ -1359,6 +1404,7 @@ const ElementTypeMap: {
   types: TypesElement,
   attributeGroup: AttributeGroupElement,
   attribute: AttributeElement,
+  list: ListElement,
 };
 
 function buildAllowedChildren(elementList: string[]): {
