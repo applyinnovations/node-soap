@@ -347,17 +347,10 @@ export class ElementElement extends Element {
       }
     }
 
-    if (this?.$name === "FormattedIndYehey") {
-      console.log("this is teh element", element);
-    }
-
     if (isAttributeGroup) {
       delete element[this?.$name];
     }
 
-    if (this?.$name === "FormattedIndYehey") {
-      console.log("this is teh element", element);
-    }
     let newValue = {
       ...element,
       ...attribGroupDesc,
