@@ -323,17 +323,15 @@ export class ElementElement extends Element {
       }
     }
 
-    // if (this?.$name === "AddressTypeHEYHEY") {
-    //   console.log("this is the element", element);
-    // }
+    let attribGroupDesc = {};
     if (isAttributeGroupWithAttributeChildren) {
-      let attribGroupDesc = {};
       for (const child of children) {
         if (
           child instanceof AttributeGroupElement ||
           child instanceof AttributeElement
         ) {
           const newDesc = child.description(definitions, xmlns);
+
           // @ts-ignore
           const subAttributes = newDesc?.attributes || {};
           if (subAttributes) {
@@ -347,12 +345,18 @@ export class ElementElement extends Element {
           };
         }
       }
-      element["attributes"] = {
-        ...element["attributes"],
-        ...attribGroupDesc,
-      };
     }
-    return element;
+
+    if (isAttributeGroup) {
+      delete element[this?.$name];
+    }
+
+    let newValue = {
+      ...element,
+      ...attribGroupDesc,
+    };
+
+    return newValue;
   }
 }
 
@@ -435,8 +439,6 @@ export class ListElement extends Element {
 
   constructor(nsName: string, attrs, options?: IWsdlBaseOptions, schemaAttrs?) {
     super(nsName, attrs, options, schemaAttrs);
-    // @ts-ignore
-    console.log(this.$itemType);
   }
 }
 
@@ -500,6 +502,7 @@ export class ExtensionElement extends Element {
 
   public description(definitions: DefinitionsElement, xmlns?: IXmlNs) {
     let desc = {};
+    let baseDesc = {};
     let attribDesc = {};
     let allAttributes = [];
     const myType = this.$base ? splitQName(this.$base) : { name: "heeeyy" };
@@ -512,14 +515,9 @@ export class ExtensionElement extends Element {
       }
 
       if (child instanceof AttributeGroupElement) {
-        // @ts-ignore
-        // if (child.attrs?.ref === "DefaultIndGroupYehey") {
-        //   console.log("this is teh child", childDesc);
-        // }
-
         attribDesc = {
           ...attribDesc,
-          ...childDesc?.attributes,
+          ...childDesc,
         };
       }
       if (child instanceof AttributeElement) {
@@ -539,7 +537,7 @@ export class ExtensionElement extends Element {
       const schema = definitions.schemas[ns];
 
       if (typeName in Primitives) {
-        return this.$base;
+        baseDesc = this.$base;
       } else {
         const typeElement =
           schema &&
@@ -549,20 +547,21 @@ export class ExtensionElement extends Element {
 
         if (typeElement) {
           const base = typeElement.description(definitions, schema.xmlns);
-          desc = typeof base === "string" ? base : _.defaults(base, desc);
+          baseDesc =
+            typeof base === "string" ? base : _.defaults(base, baseDesc);
         }
       }
     }
 
-    let returnValue = desc;
+    let returnValue = baseDesc;
 
     if (!isEmptyObject(attribDesc)) {
       returnValue = {
-        ...(typeof desc === "object" ? desc : {}),
+        ...(typeof baseDesc === "object" ? baseDesc : {}),
         attributes: {
           ...attribDesc,
           // @ts-ignore
-          ...(desc?.attributes ? desc?.attributes : {}),
+          ...(baseDesc?.attributes ? baseDesc?.attributes : {}),
         },
       };
     }
@@ -621,7 +620,8 @@ export class ComplexTypeElement extends Element {
   public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
     const children = this.children || [];
     let allDesc = {};
-    let descAttributes = {};
+    let groupDescAttrib = {};
+    let descAttrib = {};
     for (const child of children) {
       let desc = child.description(definitions, xmlns);
       if (
@@ -635,16 +635,16 @@ export class ComplexTypeElement extends Element {
       }
 
       if (child instanceof AttributeGroupElement) {
-        descAttributes = {
+        groupDescAttrib = {
           // @ts-ignore
-          ...descAttributes,
-          ...desc.attributes,
+          ...groupDescAttrib,
+          ...desc,
         };
       }
       if (child instanceof AttributeElement) {
-        descAttributes = {
+        descAttrib = {
           // @ts-ignore
-          ...descAttributes,
+          ...descAttrib,
           ...desc,
         };
       }
@@ -652,11 +652,11 @@ export class ComplexTypeElement extends Element {
 
     if (
       // @ts-ignore
-      !isEmptyObject(descAttributes) &&
-      typeof allDesc === "object"
+      !isEmptyObject(descAttrib) ||
+      (!isEmptyObject(groupDescAttrib) && typeof allDesc === "object")
     ) {
       // @ts-ignore
-      allDesc.attributes = descAttributes;
+      allDesc.attributes = { ...descAttrib, ...groupDescAttrib };
     }
 
     return allDesc;
