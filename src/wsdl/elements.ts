@@ -504,7 +504,7 @@ export class ExtensionElement extends Element {
     let desc = {};
     let baseDesc = {};
     let attribDesc = {};
-    let allAttributes = [];
+
     const myType = this.$base ? splitQName(this.$base) : { name: "heeeyy" };
 
     for (const child of this.children) {
@@ -514,21 +514,17 @@ export class ExtensionElement extends Element {
         desc = childDesc;
       }
 
-      if (child instanceof AttributeGroupElement) {
-        attribDesc = {
-          ...attribDesc,
-          ...childDesc,
-        };
-      }
-      if (child instanceof AttributeElement) {
-        // @ts-ignore
-
+      if (
+        child instanceof AttributeGroupElement ||
+        child instanceof AttributeElement
+      ) {
         attribDesc = {
           ...attribDesc,
           ...childDesc,
         };
       }
     }
+
     if (this.$base) {
       const type = splitQName(this.$base);
       const typeName = type.name;
@@ -553,7 +549,10 @@ export class ExtensionElement extends Element {
       }
     }
 
-    let returnValue = baseDesc;
+    let returnValue = {
+      ...baseDesc,
+      ...(typeof desc === "object" ? desc : {}),
+    };
 
     if (!isEmptyObject(attribDesc)) {
       returnValue = {
