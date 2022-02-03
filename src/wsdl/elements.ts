@@ -550,13 +550,13 @@ export class ExtensionElement extends Element {
     }
 
     let returnValue = {
-      ...baseDesc,
+      ...(typeof baseDesc === "object" ? baseDesc : {}),
       ...(typeof desc === "object" ? desc : {}),
     };
 
     if (!isEmptyObject(attribDesc)) {
       returnValue = {
-        ...(typeof baseDesc === "object" ? baseDesc : {}),
+        ...returnValue,
         attributes: {
           ...attribDesc,
           // @ts-ignore
