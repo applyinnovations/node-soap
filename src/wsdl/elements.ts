@@ -60,6 +60,20 @@ export interface IXmlNs {
   [key: string]: string;
 }
 
+const sanitizeAttribute = (attributes, newAttrib) => {
+  for (const key in attributes) {
+    if (typeof attributes[key] !== "string") {
+      newAttrib = {
+        ...newAttrib,
+        [key]:
+          typeof attributes[key] !== "string" ? "xs:string" : attributes[key],
+      };
+    }
+  }
+
+  return newAttrib;
+};
+
 export class Element {
   public readonly allowedChildren?: { [k: string]: typeof Element } = {};
   public $name?: string;
@@ -556,25 +570,13 @@ export class ExtensionElement extends Element {
 
     if (!isEmptyObject(attribDesc)) {
       let attributes = {};
-      for (const key in attribDesc) {
-        if (typeof desc[key] !== "string") {
-          attributes = {
-            ...attributes,
-            [key]: typeof desc[key] !== "string" ? "xs:string" : desc[key],
-          };
-        }
-      }
+
+      sanitizeAttribute(desc, attributes);
+
       // @ts-ignore
       if (baseDesc?.attributes) {
         // @ts-ignore
-        for (const key in baseDesc?.attributes) {
-          if (typeof desc[key] !== "string") {
-            attributes = {
-              ...attributes,
-              [key]: typeof desc[key] !== "string" ? "xs:string" : desc[key],
-            };
-          }
-        }
+        sanitizeAttribute(desc, baseDesc?.attributes);
       }
 
       returnValue = {
@@ -655,14 +657,7 @@ export class ComplexTypeElement extends Element {
         child instanceof AttributeGroupElement ||
         child instanceof AttributeElement
       ) {
-        for (const key in desc) {
-          if (typeof desc[key] !== "string") {
-            descAttrib = {
-              ...descAttrib,
-              [key]: typeof desc[key] !== "string" ? "xs:string" : desc[key],
-            };
-          }
-        }
+        sanitizeAttribute(desc, descAttrib);
       }
     }
 
