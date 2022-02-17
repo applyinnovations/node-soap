@@ -555,13 +555,31 @@ export class ExtensionElement extends Element {
     };
 
     if (!isEmptyObject(attribDesc)) {
+      let attributes = {};
+      for (const key in attribDesc) {
+        if (typeof desc[key] !== "string") {
+          attributes = {
+            ...attributes,
+            [key]: typeof desc[key] !== "string" ? "xs:string" : desc[key],
+          };
+        }
+      }
+      // @ts-ignore
+      if (baseDesc?.attributes) {
+        // @ts-ignore
+        for (const key in baseDesc?.attributes) {
+          if (typeof desc[key] !== "string") {
+            attributes = {
+              ...attributes,
+              [key]: typeof desc[key] !== "string" ? "xs:string" : desc[key],
+            };
+          }
+        }
+      }
+
       returnValue = {
         ...returnValue,
-        attributes: {
-          ...attribDesc,
-          // @ts-ignore
-          ...(baseDesc?.attributes ? baseDesc?.attributes : {}),
-        },
+        attributes,
       };
     }
 
@@ -619,7 +637,7 @@ export class ComplexTypeElement extends Element {
   public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
     const children = this.children || [];
     let allDesc = {};
-    let groupDescAttrib = {};
+
     let descAttrib = {};
     for (const child of children) {
       let desc = child.description(definitions, xmlns);
@@ -633,35 +651,24 @@ export class ComplexTypeElement extends Element {
         allDesc = desc;
       }
 
-      if (child instanceof AttributeGroupElement) {
+      if (
+        child instanceof AttributeGroupElement ||
+        child instanceof AttributeElement
+      ) {
         for (const key in desc) {
           if (typeof desc[key] !== "string") {
-            groupDescAttrib = {
-              ...groupDescAttrib,
+            descAttrib = {
+              ...descAttrib,
               [key]: typeof desc[key] !== "string" ? "xs:string" : desc[key],
             };
           }
         }
-
-        // console.log("this is the desc", desc);
-      }
-      if (child instanceof AttributeElement) {
-        for (const key in desc) {
-          descAttrib = {
-            ...descAttrib,
-            [key]: typeof desc[key] !== "string" ? "xs:string" : desc[key],
-          };
-        }
       }
     }
 
-    if (
+    if (!isEmptyObject(descAttrib) && typeof allDesc === "object") {
       // @ts-ignore
-      !isEmptyObject(descAttrib) ||
-      (!isEmptyObject(groupDescAttrib) && typeof allDesc === "object")
-    ) {
-      // @ts-ignore
-      allDesc.attributes = { ...descAttrib, ...groupDescAttrib };
+      allDesc.attributes = { ...descAttrib };
     }
 
     return allDesc;
