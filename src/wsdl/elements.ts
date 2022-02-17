@@ -60,6 +60,20 @@ export interface IXmlNs {
   [key: string]: string;
 }
 
+const sanitizeAttribute = (attributes, newAttrib) => {
+  for (const key in attributes) {
+    if (typeof attributes[key] !== "string") {
+      newAttrib = {
+        ...newAttrib,
+        [key]:
+          typeof attributes[key] !== "string" ? "xs:string" : attributes[key],
+      };
+    }
+  }
+
+  return newAttrib;
+};
+
 export class Element {
   public readonly allowedChildren?: { [k: string]: typeof Element } = {};
   public $name?: string;
@@ -555,13 +569,15 @@ export class ExtensionElement extends Element {
     };
 
     if (!isEmptyObject(attribDesc)) {
+      let attributes = {};
+
+      sanitizeAttribute(attribDesc, attributes);
+      // @ts-ignore
+      sanitizeAttribute(baseDesc?.attributes, attributes);
+
       returnValue = {
         ...returnValue,
-        attributes: {
-          ...attribDesc,
-          // @ts-ignore
-          ...(baseDesc?.attributes ? baseDesc?.attributes : {}),
-        },
+        attributes,
       };
     }
 
@@ -619,7 +635,7 @@ export class ComplexTypeElement extends Element {
   public description(definitions: DefinitionsElement, xmlns: IXmlNs) {
     const children = this.children || [];
     let allDesc = {};
-    let groupDescAttrib = {};
+
     let descAttrib = {};
     for (const child of children) {
       let desc = child.description(definitions, xmlns);
@@ -633,29 +649,17 @@ export class ComplexTypeElement extends Element {
         allDesc = desc;
       }
 
-      if (child instanceof AttributeGroupElement) {
-        groupDescAttrib = {
-          // @ts-ignore
-          ...groupDescAttrib,
-          ...desc,
-        };
-      }
-      if (child instanceof AttributeElement) {
-        descAttrib = {
-          // @ts-ignore
-          ...descAttrib,
-          ...desc,
-        };
+      if (
+        child instanceof AttributeGroupElement ||
+        child instanceof AttributeElement
+      ) {
+        sanitizeAttribute(desc, descAttrib);
       }
     }
 
-    if (
+    if (!isEmptyObject(descAttrib) && typeof allDesc === "object") {
       // @ts-ignore
-      !isEmptyObject(descAttrib) ||
-      (!isEmptyObject(groupDescAttrib) && typeof allDesc === "object")
-    ) {
-      // @ts-ignore
-      allDesc.attributes = { ...descAttrib, ...groupDescAttrib };
+      allDesc.attributes = { ...descAttrib };
     }
 
     return allDesc;
