@@ -6,7 +6,7 @@ import { off } from "process";
 import { IWsdlBaseOptions } from "../types";
 import { splitQName, TNS_PREFIX } from "../utils";
 
-const sanitizeAttribute = (attributes) => {
+const flattenAttributes = (attributes) => {
   let newAttrib = {};
   for (const key in attributes) {
     if (typeof attributes[key] !== "string") {
@@ -569,7 +569,7 @@ export class ExtensionElement extends Element {
       ...(typeof desc === "object" ? desc : {}),
     };
 
-    const attributes = sanitizeAttribute({
+    const attributes = flattenAttributes({
       ...attribDesc,
       // @ts-ignore
       ...(baseDesc?.attributes ? baseDesc?.attributes : {}),
@@ -666,7 +666,10 @@ export class ComplexTypeElement extends Element {
       }
     }
 
-    const attributes = sanitizeAttribute({ ...descAttrib, ...groupDescAttrib });
+    const attributes = flattenAttributes({
+      ...descAttrib,
+      ...groupDescAttrib,
+    });
     if (
       // @ts-ignore
       !isEmptyObject(descAttrib) ||
