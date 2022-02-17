@@ -9,13 +9,11 @@ import { splitQName, TNS_PREFIX } from "../utils";
 const flattenAttributes = (attributes) => {
   let newAttrib = {};
   for (const key in attributes) {
-    if (typeof attributes[key] !== "string") {
-      newAttrib = {
-        ...newAttrib,
-        [key]:
-          typeof attributes[key] !== "string" ? "xs:string" : attributes[key],
-      };
-    }
+    newAttrib = {
+      ...newAttrib,
+      [key]:
+        typeof attributes[key] !== "string" ? "xs:string" : attributes[key],
+    };
   }
 
   return newAttrib;
