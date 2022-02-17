@@ -70,6 +70,8 @@ const sanitizeAttribute = (attributes, newAttrib) => {
       };
     }
   }
+
+  return newAttrib;
 };
 
 export class Element {
@@ -569,13 +571,9 @@ export class ExtensionElement extends Element {
     if (!isEmptyObject(attribDesc)) {
       let attributes = {};
 
-      sanitizeAttribute(desc, attributes);
-
+      sanitizeAttribute(attribDesc, attributes);
       // @ts-ignore
-      if (baseDesc?.attributes) {
-        // @ts-ignore
-        sanitizeAttribute(desc, baseDesc?.attributes);
-      }
+      sanitizeAttribute(baseDesc?.attributes, attributes);
 
       returnValue = {
         ...returnValue,
