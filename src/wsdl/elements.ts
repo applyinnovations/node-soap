@@ -634,18 +634,24 @@ export class ComplexTypeElement extends Element {
       }
 
       if (child instanceof AttributeGroupElement) {
-        groupDescAttrib = {
-          // @ts-ignore
-          ...groupDescAttrib,
-          ...desc,
-        };
+        for (const key in desc) {
+          if (typeof desc[key] !== "string") {
+            groupDescAttrib = {
+              ...groupDescAttrib,
+              [key]: typeof desc[key] !== "string" ? "xs:string" : desc[key],
+            };
+          }
+        }
+
+        // console.log("this is the desc", desc);
       }
       if (child instanceof AttributeElement) {
-        descAttrib = {
-          // @ts-ignore
-          ...descAttrib,
-          ...desc,
-        };
+        for (const key in desc) {
+          descAttrib = {
+            ...descAttrib,
+            [key]: typeof desc[key] !== "string" ? "xs:string" : desc[key],
+          };
+        }
       }
     }
 
