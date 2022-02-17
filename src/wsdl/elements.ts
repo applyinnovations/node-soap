@@ -70,8 +70,6 @@ const sanitizeAttribute = (attributes, newAttrib) => {
       };
     }
   }
-
-  return newAttrib;
 };
 
 export class Element {
