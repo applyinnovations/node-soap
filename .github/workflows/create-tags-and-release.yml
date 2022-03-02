@@ -2,12 +2,12 @@
 
 on:
   pull_request:
-    types: closed
+    types: [closed]
 
 jobs:
   create-tags-and-release:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged && github.event.pull_request.base.ref == 'release'
+    if: github.event.pull_request.merged && github.event.pull_request.base.ref == 'master'
     steps:
       - name: Get Release Name
         uses: actions-ecosystem/action-regex-match@v2
