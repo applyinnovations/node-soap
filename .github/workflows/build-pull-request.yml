@@ -34,6 +34,7 @@ jobs:
         uses: technote-space/package-version-check-action@v1
         with:
           NEXT_VERSION: "${{ steps.get_tag_name.outputs.replaced }}"
+          COMMIT_MESSAGE: "updating package.json version"
 
       - name: Commit changes for the generated build
         uses: EndBug/add-and-commit@v8
